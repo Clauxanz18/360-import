@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import csv
 import re
 import sys
 from pathlib import Path
 
 from rapidfuzz import fuzz, process
+
+from extract_images import should_ignore_extracted_png, should_skip_truncated_xls_jpeg
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
 
@@ -137,6 +141,10 @@ def build_deduplicated_index(images_dir: Path) -> dict[str, Path]:
             continue
         if p.stem.strip() in EXCLUDED_STEMS:
             continue
+        if should_ignore_extracted_png(p):
+            continue
+        if should_skip_truncated_xls_jpeg(p):
+            continue
         m = _SUFFIX_RE.match(p.stem)
         base = m.group(1).strip() if m else p.stem.strip()
         idx  = int(m.group(2))   if m else -1
@@ -153,7 +161,7 @@ def build_deduplicated_index(images_dir: Path) -> dict[str, Path]:
 
 def find_best_match(
     product_text: str,
-    index: dict[str, Path],
+    index: dict,
     threshold: int,
 ) -> str | None:
     """

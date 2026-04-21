@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import base64
 import csv
@@ -6,6 +8,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 from playwright.async_api import async_playwright
+
+from extract_images import should_ignore_extracted_png, should_skip_truncated_xls_jpeg
 
 
 # ── Pure helpers ─────────────────────────────────────────────────────────────
@@ -22,7 +26,7 @@ def encode_image(image_path: str) -> str | None:
     if not image_path or image_path == 'FALSE':
         return None
     p = Path(image_path)
-    if not p.exists():
+    if not p.exists() or should_ignore_extracted_png(p) or should_skip_truncated_xls_jpeg(p):
         return None
     suffix = p.suffix.lower().lstrip('.')
     if suffix == 'jpg':

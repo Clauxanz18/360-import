@@ -203,8 +203,23 @@ def render_image_picker(product_idx: int, state: dict) -> None:
     all_images = get_all_images()
     st.markdown("#### Seleccionar imagen")
 
-    search = st.text_input("Buscar imagen", key=f"img_search_{product_idx}", placeholder="nombre de archivo…")
-    filtered = [p for p in all_images if not search or search.lower() in p.name.lower()]
+    col_search, col_toggle = st.columns([3, 1])
+    with col_search:
+        search = st.text_input("Buscar imagen", key=f"img_search_{product_idx}", placeholder="nombre de archivo…")
+    with col_toggle:
+        hide_matched = st.checkbox("Ocultar asignadas", value=True, key=f"hide_matched_{product_idx}")
+
+    already_used = {
+        entry["image"]
+        for i, entry in state.items()
+        if entry.get("status") == "approved" and "image" in entry and i != str(product_idx)
+    }
+
+    filtered = [
+        p for p in all_images
+        if (not search or search.lower() in p.name.lower())
+        and (not hide_matched or str(p) not in already_used)
+    ]
 
     if not filtered:
         st.info("Sin resultados.")
@@ -217,6 +232,8 @@ def render_image_picker(product_idx: int, state: dict) -> None:
             with cols[col_idx]:
                 st.markdown(img_html(img_path, height="120px"), unsafe_allow_html=True)
                 st.caption(img_path.name[:28])
+                with st.popover("🔍", use_container_width=True):
+                    st.image(str(img_path), caption=img_path.name, use_container_width=True)
                 if st.button("Seleccionar", key=f"pick_{product_idx}_{img_path.name}"):
                     entry = state.setdefault(str(product_idx), {})
                     entry["image"] = str(img_path)
@@ -332,6 +349,8 @@ def render_product_card(
         st.markdown("**Imagen actual**")
         if img_valid:
             st.markdown(img_html(img_path, height="320px"), unsafe_allow_html=True)
+            with st.popover("🔍 Vista previa", use_container_width=True):
+                st.image(str(img_path), caption=img_path.name, use_container_width=True)
         else:
             st.markdown(
                 "<div style='height:320px;display:flex;align-items:center;justify-content:center;"
